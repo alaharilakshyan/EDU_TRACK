@@ -2,8 +2,58 @@ const express = require('express');
 const { StudentProfile, Certificate, Report, Internship, CVVersion, ActivityEvent } = require('../models');
 const { studentOnly } = require('../middleware/auth');
 const fileService = require('../services/fileService');
-const llmService = require('../services/llmService');
 const router = express.Router();
+
+// Fallback scoring function (replaces LLM service)
+function fallbackScoring(cvText, jobDescription, verificationData = {}) {
+  // Simple keyword-based fallback scoring
+  const cvLower = cvText.toLowerCase();
+  const requiredSkills = jobDescription.requiredSkills || [];
+  
+  const skillMatch = requiredSkills.filter(skill => 
+    cvLower.includes(skill.toLowerCase())
+  ).length / Math.max(requiredSkills.length, 1);
+
+  const experienceMatch = cvLower.includes('year') ? 0.7 : 0.3;
+  const educationMatch = cvLower.includes('bachelor') || cvLower.includes('master') ? 1.0 : 0.5;
+  const activityMatch = cvLower.includes('project') ? 0.6 : 0.3;
+  const certificationMatch = cvLower.includes('certified') || cvLower.includes('certificate') ? 0.5 : 0.2;
+  const verificationScore = verificationData.verificationRatio || 0.5;
+
+  const finalATS = (
+    0.40 * skillMatch +
+    0.20 * experienceMatch +
+    0.15 * educationMatch +
+    0.10 * activityMatch +
+    0.10 * certificationMatch +
+    0.05 * verificationScore
+  ) * 100;
+
+  return {
+    parsedResume: {
+      name: 'Unknown',
+      email: 'Unknown',
+      phone: 'Unknown',
+      education: [],
+      experience: [],
+      projects: [],
+      skills: requiredSkills.filter(skill => cvLower.includes(skill.toLowerCase())),
+      certifications: []
+    },
+    scores: {
+      skillMatch,
+      experience: experienceMatch,
+      education: educationMatch,
+      activity: activityMatch,
+      certification: certificationMatch,
+      verification: verificationScore
+    },
+    finalATSPercent: Math.round(finalATS * 10) / 10,
+    topReasons: ['Basic keyword analysis performed'],
+    missing: ['Advanced analysis unavailable'],
+    recommendations: ['Add more detailed experience information']
+  };
+}
 
 // GET /api/students/:uid7/profile
 router.get('/:uid7/profile', studentOnly, async (req, res) => {
@@ -518,12 +568,8 @@ router.post('/:uid7/cv/score', studentOnly, async (req, res) => {
     const profile = await StudentProfile.findById(req.user.profileRef);
     const verificationRatio = profile.analytics?.verificationRatio || 0;
 
-    // Call LLM service for scoring
-    const scoreResult = await llmService.scoreCV(
-      cvVersion.parsedContent,
-      jobDescription,
-      { verificationRatio }
-    );
+    // Fallback scoring function (replaces LLM service)
+    const scoreResult = fallbackScoring(cvVersion.parsedContent, jobDescription, { verificationRatio });
 
     // Update CV version with score results
     cvVersion.parsedData = scoreResult.parsedResume;

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChartBarIcon, CodeBracketIcon, FireIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { CodeBracketIcon, FireIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 const Heatmap = () => {
   const [selectedPlatform, setSelectedPlatform] = useState('all');
@@ -14,8 +14,7 @@ const Heatmap = () => {
 
   const generateHeatmapData = () => {
     const data = [];
-    const today = new Date();
-    const yearStart = new Date(selectedYear, 0, 1);
+      const yearStart = new Date(selectedYear, 0, 1);
     const yearEnd = new Date(selectedYear, 11, 31);
     
     // Generate data for the entire year

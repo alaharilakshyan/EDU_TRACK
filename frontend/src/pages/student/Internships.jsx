@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusCircleIcon, BriefcaseIcon, BuildingOfficeIcon, CalendarIcon, MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { PlusCircleIcon, BriefcaseIcon, CalendarIcon, MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 const Internships = () => {
   const [showForm, setShowForm] = useState(false);
